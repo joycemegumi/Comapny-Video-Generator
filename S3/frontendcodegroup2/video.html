@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Company Video Playback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        #videoPlayerContainer {
+            max-width: 800px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        #videoPlayer {
+            width: 100%;
+            max-height: 400px; /* Set the maximum height of the video player */
+            margin: 0 auto; /* Center the video player horizontally */
+        }
+    </style>
+</head>
+<body>
+    <div id="videoPlayerContainer">
+        <video id="videoPlayer" controls muted autoplay>
+            <!-- Video source will be added dynamically -->
+        </video>
+    </div>
+    
+    <!-- Return to Homepage link -->
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="videogenerator.html">Return to Homepage</a>
+    </div>
+
+    <script>
+        // Retrieve the video URL from the query parameter
+        var videoURL = decodeURIComponent(getParameterByName('videoURL'));
+
+        // Set the video URL as the source of the video player
+        var videoPlayer = document.getElementById("videoPlayer");
+        videoPlayer.src = videoURL;
+        videoPlayer.play();
+
+        // Function to get query parameters from the URL
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+    </script>
+</body>
+</html>
+
+

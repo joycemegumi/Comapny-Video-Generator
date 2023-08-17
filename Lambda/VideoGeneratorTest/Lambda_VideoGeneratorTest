@@ -1,0 +1,269 @@
+import json
+from sqlalchemy import create_engine, text
+import requests
+from urllib.parse import parse_qs
+import psycopg2
+
+#Create a connection to RDS PostgreSQL using SQLAlchemy
+rds_host = "apan5450-db.c4c9zjbismmc.us-east-1.rds.amazonaws.com"
+rds_port = "5432"
+rds_dbname = "apan5450"
+rds_username = "postgres"
+rds_password = "postgres"
+
+
+PEXELS_API_KEY = "MYdOU4XPzufCxll7YoijTyQPMDyZUzTxABr3hX6FclTo73lAw1CEII6I"
+
+try:
+    conn_url = f"postgresql://{rds_username}:{rds_password}@{rds_host}:{rds_port}/{rds_dbname}"
+    engine = create_engine(conn_url)
+    connection = engine.connect()
+    print("Successfully connected to RDS PostgreSQL using SQLAlchemy!")
+except Exception as e:
+    print("Error: Unable to connect to RDS PostgreSQL using SQLAlchemy.")
+    print(e)
+
+
+# Function to search company in RDS
+def search_company(company_id):
+    # Query RDS to get company info and logo file name
+    query2 = text("""
+                    SELECT c.*, l.file_name
+                    FROM companies c
+                    LEFT JOIN logos l ON c.company_id = l.company_id
+                    WHERE c.company_id = :company_id;
+                  """)
+    companies = connection.execute(query2, parameters=dict(company_id=company_id))
+    result = companies.fetchone()
+    return result
+
+# Function to search country video from Pexel
+def search_country_video(country):
+    # Connect to Pexels API
+    api_url = f"https://api.pexels.com/videos/search"
+    headers = {
+        "Authorization": PEXELS_API_KEY,
+    }
+    params = {
+        "query": country,
+        "per_page": 1,
+        "page": 1,
+    }
+
+    response = requests.get(api_url, headers=headers, params=params)
+
+    # Check if the request was successful and get the video link if available
+    if response.status_code == 200:
+        data = response.json()
+        if data["videos"]:
+            # Find the video in video files with quality >= 720p width
+            best_candidate_video = None
+            for video in data["videos"][0]["video_files"]:
+                if video["width"] >= 1080 and (best_candidate_video is None or best_candidate_video['width'] < video['width']):
+                    best_candidate_video = video
+            country_video_url = best_candidate_video['link']
+    else:
+        print(f"Error searching country video. Status code: {response.status_code}")
+
+    return country_video_url
+
+# Function to search city video from Pexel
+def search_city_video(city):
+    # Connect to Pexels API
+    api_url = f"https://api.pexels.com/videos/search"
+    headers = {
+        "Authorization": PEXELS_API_KEY,
+    }
+    params = {
+        "query": city,
+        "per_page": 1,
+        "page": 1,
+    }
+
+    response = requests.get(api_url, headers=headers, params=params)
+
+    # Check if the request was successful and get the video link if available
+    if response.status_code == 200:
+        data = response.json()
+        if len(data["videos"]) != 0:
+            # Find the video in video files with quality >= 720p width
+            best_candidate_video = None
+            for video in data["videos"][0]["video_files"]:
+                if video["width"] >= 1080 and (best_candidate_video is None or best_candidate_video['width'] < video['width']):
+                    best_candidate_video = video
+            city_video_url = best_candidate_video['link']
+            return city_video_url
+    else:
+        print(f"Error searching city video. Status code: {response.status_code}")
+        return None
+
+# Function to search industry video from Pexel
+def search_industry_video(industry):
+    # Connect to Pexels API
+    api_url = f"https://api.pexels.com/videos/search"
+    headers = {
+        "Authorization": PEXELS_API_KEY,
+    }
+    params = {
+        "query": industry,
+        "per_page": 1,
+        "page": 1,
+    }
+
+    response = requests.get(api_url, headers=headers, params=params)
+
+    # Check if the request was successful and get the video link if available
+    if response.status_code == 200:
+        data = response.json()
+        if data["videos"]:
+            # Find the video in video files with quality >= 720p width
+            best_candidate_video = None
+            for video in data["videos"][0]["video_files"]:
+                if video["width"] >= 1080 and (best_candidate_video is None or best_candidate_video['width'] < video['width']):
+                    best_candidate_video = video
+            industry_video_url = best_candidate_video['link']
+    else:
+        print(f"Error searching industry video. Status code: {response.status_code}")
+
+    return industry_video_url
+
+# Function to create video
+def create_video(result, selected_music):
+    music_a = "https://d2d2meui3jf8st.cloudfront.net/bgm/Motivational.mp3"
+    music_b = "https://d2d2meui3jf8st.cloudfront.net/bgm/Inspirational.mp3"
+    # if theme == 'A' then use music A
+    if selected_music == '1':
+        music = music_a
+    else:
+        music = music_b
+
+    city_video_url = search_city_video(result[5])
+    country_video_url = search_country_video(result[6])
+    industry_video_url = search_industry_video(result[3])
+    
+    if city_video_url is None:
+        location_video_url = country_video_url
+    else:
+        location_video_url = city_video_url
+    
+    # If else to check if Logo is available, if not use default transparent image
+    if result[7] is None:
+        logo_url = "https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png"
+    else:
+        image_path = result[7].split('.')
+        logo_url = "https://d2d2meui3jf8st.cloudfront.net/Tickerslogos/logos/" + image_path[0].upper() + '.' + image_path[1]
+    
+    # Read json file
+    with open('./video.1.json') as f:
+        # Replace placeholders in json string with variables of that company
+        json_string = f.read()
+        json_string = json_string.replace('{{COMPANY_NAME}}', result[1].upper())
+        json_string = json_string.replace('{{YEAR_FOUNDED}}', str(result[2]))
+        json_string = json_string.replace('{{INDUSTRY}}', result[3])
+        json_string = json_string.replace('{{SIZE_RANGE}}', result[4])
+        json_string = json_string.replace('{{CITY}}', result[5])
+        json_string = json_string.replace('{{COUNTRY}}', result[6])
+        json_string = json_string.replace('{{LOGO_PATH}}', logo_url) # Don't upper case file extension e.g. TSLA.png
+        json_string = json_string.replace('{{INDUSTRY_VIDEO_URL}}', industry_video_url)
+        json_string = json_string.replace('{{CITY_VIDEO_URL}}', location_video_url)
+        json_string = json_string.replace('{{MUSIC_URL}}', music)
+
+    # Connect to JSON2VIDEO API
+    api_base_path = "https://api.json2video.com/v2"
+    api_key = "ba9QXA0B603O6SrEXw5HJ74ApZCFTP6P48YIugrk"
+    endpoint = f"{api_base_path}/movies"
+
+    headers = {
+        "x-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+
+    # Send JSON object to API
+    response = requests.post(endpoint, headers=headers, json=json_string)
+
+    # Check if the request was successful and get the project id if available and set it to external_id
+    if response.status_code == 200 and response.json().get("success") == True:
+        external_id = response.json().get("project")
+        print(f"Video created successfully. External ID: {external_id}")
+        return external_id
+    else:
+        print(f"Error creating video. Status code: {response.status_code}")
+        return None
+
+# Function to insert generated video information into RDS generated_videos table
+def insert_generated_video(company_id, external_id, theme, music):
+    try: 
+        query3 = text("""
+                        INSERT INTO generated_videos (company_id, external_id, created_at, theme, music) 
+                        VALUES (:company_id, :external_id, CURRENT_TIMESTAMP, :theme, :music) RETURNING video_id;
+                      """)
+        result = connection.execute(query3, parameters=dict(company_id=company_id, 
+        external_id=external_id, theme=theme, music=music)).fetchone()
+        connection.commit()
+    except: 
+        connection.rollback()
+
+    print("Successfully inserted values into generated_videos table with video_id: " + str(result[0]))
+    return result[0]
+
+# Function to check or create video
+def check_or_create_video(company_id, result, theme_selected):
+    # Define theme
+    if theme_selected == 'themeA':
+        theme = '1'
+        music = '1'
+    else:  
+        theme = '0'
+        music = '0'
+
+    # Check if the record exists in generated_videos table
+    query1 = text("""
+                   SELECT video_id, video_url
+                   FROM generated_videos
+                   WHERE company_id = :company_id AND theme = :theme AND music = :music
+                   LIMIT 1;
+                 """)
+    existing_result = connection.execute(query1, parameters=dict(company_id=company_id, theme=theme, music=music)).fetchone()
+
+    if existing_result:
+        # Record exists, return the video_url
+        return {
+            'video_url': existing_result[1],
+            'video_id': existing_result[0],
+        }
+    else:
+        # Record doesn't exist, run the create_video function
+        external_id = create_video(result, music)
+        
+        if external_id is None:
+            return "Video could not be created"
+
+        # Insert the generated video external_id into generated_videos table
+        generated_video_id = insert_generated_video(company_id, external_id, theme, music)
+        return {
+            'video_url': None,
+            'video_id': generated_video_id,
+        }
+
+
+# Lambda Handler
+def lambda_handler(event, context):
+    # Parse event['body'] as form_data dictionary
+    form_data = parse_qs(event['body'])
+    
+    # Post request to /videos endpoint
+    company_selected = form_data['search'][0]
+    theme_selected = form_data['theme'][0]
+    company_id = int(company_selected.split(" - ")[1])
+    result = search_company(company_id)
+    video_result = check_or_create_video(company_id, result, theme_selected)
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps(video_result),
+        'headers': {
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        }
+    }
