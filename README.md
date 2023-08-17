@@ -10,3 +10,6 @@ In this project my team built a company video generator web application based on
 
 <img src="Company Video Generation Cloud Architecture.jpeg"/>
 
+Please be aware that if the site experiences downtime or malfunctions, it could be due to the following reasons:
+* AWS Lab Budget Depletion: The site relies on AWS lab resources. Budget constraints might lead to temporary unavailability.
+* JSON2VIDEO API Key Trial End: Some features use the JSON2VIDEO API with a free trial. If the trial ends, related services might be affected.
