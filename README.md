@@ -4,7 +4,7 @@
 
 [View the Web Application](https://frontendcodegroup2.s3.amazonaws.com/videogenerator.html)
 [View Demo: Generating New Video](https://youtu.be/qe13jgi8Dv4)
-[View Demo: https://youtu.be/1GhVirfRe0Q]
+[View Demo: Generating Existing Video](https://youtu.be/1GhVirfRe0Q)
 [View the Canva Presenation](https://www.canva.com/design/DAFr0hoDX14/3IRODlYJekxRvXHBT6kVJA/view?utm_content=DAFr0hoDX14&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink)
 
 Manual content creation involves extensive time and effort by video editors that need to search for video assets, apply copy, styling etc. This process can be time-consuming and may lead to delays in delivering timely content to customers, potentially missing valuable opportunities.
